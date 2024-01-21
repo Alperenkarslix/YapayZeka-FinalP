@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yandex Maps - Nokta Seçimi</title>
+    <script src="https://api-maps.yandex.com/2.1/?lang=en_RU" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    
+        h2 {
+            color: #333;
+        }
+    
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    
+        #coordinatelist {
+            margin-top: 20px;
+        }
+    
+        #coordlist {
+            list-style: none;
+            padding: 0;
+        }
+    
+        #geneticParams {
+            margin-top: 20px;
+        }
+    
+        form {
+            display: flex;
+            flex-direction: column;
+            max-width: 300px;
+        }
+    
+        label {
+            margin-bottom: 5px;
+        }
+    
+        input {
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+    
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+    
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 0.5px solid #ddd;
+        }
+
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h2>Yandex Maps - Nokta Seçimi</h2>
+    <div id="map"></div>
+    <div id="coordinatelist">
+        <h3>Seçilen Noktalar</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nokta</th>
+                    <th>Latitudinal (Enlem)</th>
+                    <th>Longitudinal (Boylam)</th>
+                </tr>
+            </thead>
+            <tbody id="coordlist"></tbody>
+        </table>
+    </div>
+    <div id="geneticParams">
+        <h3>Genetik Algoritma Parametreleri</h3>
+        <form action="/genetik_algoritma" method="post">
+            <label for="pop_size">Popülasyon Boyutu:</label>
+            <input type="text" id="pop_size" name="pop_size" required><br>
+
+            <label for="iterasyon_sayisi">İterasyon Sayısı:</label>
+            <input type="text" id="iterasyon_sayisi" name="iterasyon_sayisi" required><br>
+
+            <label for="caprazlama_orani">Çaprazlama Oranı:</label>
+            <input type="text" id="caprazlama_orani" name="caprazlama_orani" required><br>
+
+            <label for="mutasyon_orani">Mutasyon Oranı:</label>
+            <input type="text" id="mutasyon_orani" name="mutasyon_orani" required><br>
+
+            <input type="submit" value="Hesapla">
+        </form>
+    </div>
+    <script>
+        ymaps.ready(init);
+
+        var map;
+        var kayitli_noktalar = [];
+
+        function init() {
+            map = new ymaps.Map("map", {
+                center: [39.6492, 27.8860], // Balıkesir'in merkezi
+                zoom: 12
+            });
+
+            map.events.add('click', function (e) {
+                addMarker(e.get('coords'));
+            });
+        }
+
+        function addMarker(coords) {
+            var marker = new ymaps.Placemark(coords);
+            map.geoObjects.add(marker);
+
+            kayitli_noktalar.push({
+                lat: coords[0],
+                lng: coords[1]
+            });
+
+            // Seçilen noktanın koordinatlarını listeye ekleyin
+            var lastIndex = kayitli_noktalar.length - 1;
+            updateCoordinateList(kayitli_noktalar[lastIndex], lastIndex);
+
+            if (kayitli_noktalar.length === 20) {
+                // 20 nokta seçildikten sonra veriyi sunucuya gönder
+                kaydet(kayitli_noktalar);
+            }
+        }
+
+        function kaydet(noktalar) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/kaydet", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.send(JSON.stringify({ noktalar: noktalar }));
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    if (xhr.status == 200) {
+                        alert('Noktalar başarıyla kaydedildi.');
+                        // Kaydedildikten sonra mesafeleri almak için mesafe fonksiyonunu çağır
+                        mesafe();
+                    } else {
+                        alert('Noktaları kaydetme sırasında bir hata oluştu.');
+                    }
+                }
+            };
+        }
+
+        function updateCoordinateList(point, index) {
+            var coordList = document.getElementById('coordlist');
+            var newRow = coordList.insertRow();
+            newRow.innerHTML = `<td>${index + 1}</td><td>${point.lat}</td><td>${point.lng}</td>`;
+        }
+
+        function mesafe() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/mesafe", true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    if (xhr.status == 200) {
+                        var mesafeMatrisi = JSON.parse(xhr.responseText).mesafe_matrisi;
+                        console.log('Noktalar arasındaki sürüş mesafeleri:', mesafeMatrisi);
+                    } else {
+                        alert('Mesafe bilgilerini alma sırasında bir hata oluştu.');
+                    }
+                }
+            };
+
+            xhr.send();
+        }
+    </script>
+</body>
+</html>

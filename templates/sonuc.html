@@ -1,0 +1,127 @@
+<!-- templates/sonuc.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetik Algoritma Sonuçları</title>
+    <script src="https://api-maps.yandex.com/2.1/?lang=en_TR" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    
+        h2 {
+            color: #333;
+        }
+    
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 0.5px solid #ddd;
+        }
+
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        #uygunluk {
+            margin-top: 20px;
+        }
+    
+        #uygunluk p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Genetik Algoritma Sonuçları</h2>
+    <h3>En İyi Rota:</h3>
+
+    <div id="map"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nokta</th>
+                <th>Latitudinal (Enlem)</th>
+                <th>Longitudinal (Boylam)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if kayitli_noktalar is defined %}
+                {% for nokta in en_iyi_yol %}
+                    <tr>
+                        <td>Nokta {{ nokta + 1 }}</td>
+                        <td>{{ kayitli_noktalar[nokta].lat }}</td>
+                        <td>{{ kayitli_noktalar[nokta].lng }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="3">Kayıtlı nokta bulunamadı.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div id="uygunluk">
+        <h3>En İyi Uygunluk:</h3>
+        <p>{{ en_iyi_uygunluk }}</p>
+    </div>
+    
+
+    
+
+    <script>
+        ymaps.ready(init);
+        
+        function init() {
+            map = new ymaps.Map("map", {
+                center: [39.6492, 27.8860], // Balıkesir'in merkezi
+                zoom: 13
+            });
+                
+                {% if kayitli_noktalar is defined %}
+                    {% for nokta in en_iyi_yol %}
+                        var nokta{{ nokta }} = new ymaps.Placemark([{{ kayitli_noktalar[nokta].lat }}, {{ kayitli_noktalar[nokta].lng }}], {
+                            hintContent: "Nokta {{ nokta }}",
+                            balloonContent: "Nokta {{ nokta }}"
+                        });
+                        map.geoObjects.add(nokta{{ nokta }});
+                    {% endfor %}
+                {% endif %}
+
+                var polyline = new ymaps.Polyline([
+                    {% if kayitli_noktalar is defined %}
+                        {% for nokta in en_iyi_yol %}
+                            [{{ kayitli_noktalar[nokta].lat }}, {{ kayitli_noktalar[nokta].lng }}],
+                        {% endfor %}
+                    {% endif %}
+                ], {
+                    hintContent: "En İyi Rota",
+                    balloonContent: "En İyi Rota"
+                }, {
+                    strokeColor: "#000000",
+                    strokeWidth: 4,
+                    strokeOpacity: 1
+                });    
+                map.geoObjects.add(polyline);
+
+        }
+    </script>
+</body>
+</html>
